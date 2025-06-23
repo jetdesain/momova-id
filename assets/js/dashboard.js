@@ -4,7 +4,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("lapak").addEventListener("change", isiPajak);
   document.getElementById("notaForm").addEventListener("submit", simpanNota);
   updateDashboard();
-  updateSummaryKirimSisa();
+  updateTableProduct();
   loadRanking();
 });
 
@@ -55,7 +55,7 @@ function simpanNota(e) {
     const modal = bootstrap.Modal.getInstance(document.getElementById("notaModal"));
     modal.hide();
     updateDashboard();
-    updateSummaryKirimSisa();
+    updateTableProduct();
     loadRanking();
   }).addSendNota(data);
 }
@@ -87,14 +87,14 @@ function updateDashboard() {
   }).getDashboardData();
 }
 
-function updateSummaryKirimSisa() {
+function updateTableProduct() {
   google.script.run.withSuccessHandler(function(data) {
-    document.getElementById("kirimMochi").textContent = data.kirim.mochi;
-    document.getElementById("kirimSando").textContent = data.kirim.sando;
-    document.getElementById("kirimStuf").textContent = data.kirim.stuf;
-    document.getElementById("sisaMochi").textContent = data.sisa.mochi;
-    document.getElementById("sisaSando").textContent = data.sisa.sando;
-    document.getElementById("sisaStuf").textContent = data.sisa.stuf;
+    document.getElementById("kirimMochi").textContent = data.kirimMochi;
+    document.getElementById("kirimSando").textContent = data.kirimSando;
+    document.getElementById("kirimStuf").textContent = data.kirimStuf;
+    document.getElementById("sisaMochi").textContent = data.sisaMochi;
+    document.getElementById("sisaSando").textContent = data.sisaSando;
+    document.getElementById("sisaStuf").textContent = data.sisaStuf;
   }).getKirimSisaSummary();
 }
 
