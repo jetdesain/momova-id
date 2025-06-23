@@ -1,88 +1,12 @@
-// dashboard.js
-
-function initDashboard() {
+document.addEventListener("DOMContentLoaded", () => {
+  toggleTheme();
+  isiNamaLapak();
+  document.getElementById("lapak").addEventListener("change", isiPajak);
+  document.getElementById("notaForm").addEventListener("submit", simpanNota);
   updateDashboard();
   updateSummaryKirimSisa();
   loadRanking();
-  loadFilterOptions();
-  document.getElementById("today").textContent = new Date().toLocaleDateString('id-ID');
-}
-
-function updateDashboard() {
-  google.script.run.withSuccessHandler(data => {
-    document.getElementById("transaksi").textContent = data.total_transaksi || 0;
-    document.getElementById("omset").textContent = toRupiah(data.total_omset || 0);
-    document.getElementById("profit").textContent = toRupiah(data.total_profit || 0);
-  }).getDashboardSummary();
-}
-
-function updateSummaryKirimSisa() {
-  google.script.run.withSuccessHandler(data => {
-    document.getElementById("kirimMochi").textContent = data.kirimMochi;
-    document.getElementById("kirimSando").textContent = data.kirimSando;
-    document.getElementById("kirimStuf").textContent = data.kirimStuf;
-    document.getElementById("sisaMochi").textContent = data.sisaMochi;
-    document.getElementById("sisaSando").textContent = data.sisaSando;
-    document.getElementById("sisaStuf").textContent = data.sisaStuf;
-  }).getSummaryKirimSisa();
-}
-
-function loadRanking() {
-  google.script.run.withSuccessHandler(data => {
-    const list = document.getElementById("ranking");
-    list.innerHTML = "";
-    data.forEach((item, index) => {
-      const li = document.createElement("li");
-      li.textContent = `${item.lapak} - ${toRupiah(item.omset)}`;
-      list.appendChild(li);
-    });
-  }).getRankingByLapak();
-}
-
-function loadFilterOptions() {
-  google.script.run.withSuccessHandler(data => {
-    const select = document.getElementById("filterLapak");
-    data.forEach(lapak => {
-      const option = document.createElement("option");
-      option.value = lapak;
-      option.textContent = lapak;
-      select.appendChild(option);
-    });
-  }).getNameLapak();
-}
-
-function filterDashboard() {
-  const tanggal = document.getElementById("filterTanggal").value;
-  const lapak = document.getElementById("filterLapak").value;
-
-  google.script.run.withSuccessHandler(data => {
-    const chartCanvas = document.getElementById("chartLapak");
-    if (window.chartInstance) window.chartInstance.destroy();
-
-    const labels = data.map(d => d.lapak);
-    const values = data.map(d => d.omset);
-
-    window.chartInstance = new Chart(chartCanvas, {
-      type: 'bar',
-      data: {
-        labels,
-        datasets: [{
-          label: 'Omset',
-          data: values,
-          backgroundColor: '#0d6efd'
-        }]
-      },
-      options: {
-        responsive: true,
-        scales: {
-          y: {
-            beginAtZero: true
-          }
-        }
-      }
-    });
-  }).getFilteredOmset({ tanggal, lapak });
-}
+});
 
 function toggleTheme() {
   const body = document.body;
@@ -90,11 +14,105 @@ function toggleTheme() {
   body.classList.toggle("light-mode");
 }
 
-function toRupiah(num) {
+function isiNamaLapak() {
+  google.script.run.withSuccessHandler(function(data) {
+    const select = document.getElementById("lapak");
+    select.innerHTML = '<option value="">Pilih Lapak</option>';
+    data.forEach(nama => {
+      const option = document.createElement("option");
+      option.value = nama;
+      option.textContent = nama;
+      select.appendChild(option);
+    });
+  }).getNameLapak();
+}
+
+function isiPajak() {
+  const lapak = document.getElementById("lapak").value;
+  const pajakInput = document.getElementById("pajak");
+  pajakInput.value = "Memuat...";
+
+  google.script.run.withSuccessHandler(function(pajak) {
+    pajakInput.value = pajak;
+  }).getPajakByLapak(lapak);
+}
+
+function simpanNota(e) {
+  e.preventDefault();
+
+  const data = {
+    tanggal: document.getElementById("tanggal").value,
+    lapak: document.getElementById("lapak").value,
+    pajak: parseFloat(document.getElementById("pajak").value) || 0,
+    mochi: parseInt(document.getElementById("mochi").value) || 0,
+    sando: parseInt(document.getElementById("sando").value) || 0,
+    stuf: parseInt(document.getElementById("stuf").value) || 0
+  };
+
+  google.script.run.withSuccessHandler(() => {
+    alert("Nota berhasil disimpan!");
+    document.getElementById("notaForm").reset();
+    const modal = bootstrap.Modal.getInstance(document.getElementById("notaModal"));
+    modal.hide();
+    updateDashboard();
+    updateSummaryKirimSisa();
+    loadRanking();
+  }).addSendNota(data);
+}
+
+function updateDashboard() {
+  google.script.run.withSuccessHandler(function(data) {
+    document.getElementById("transaksi").textContent = data.total_transaksi;
+    document.getElementById("omset").textContent = formatRupiah(data.total_omset);
+    document.getElementById("profit").textContent = formatRupiah(data.total_profit);
+
+    const ctx = document.getElementById("chartLapak").getContext("2d");
+    new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: data.chartLabels,
+        datasets: [{
+          label: "Penjualan",
+          data: data.chartValues,
+          backgroundColor: "#007bff"
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          legend: { display: false }
+        }
+      }
+    });
+  }).getDashboardData();
+}
+
+function updateSummaryKirimSisa() {
+  google.script.run.withSuccessHandler(function(data) {
+    document.getElementById("kirimMochi").textContent = data.kirim.mochi;
+    document.getElementById("kirimSando").textContent = data.kirim.sando;
+    document.getElementById("kirimStuf").textContent = data.kirim.stuf;
+    document.getElementById("sisaMochi").textContent = data.sisa.mochi;
+    document.getElementById("sisaSando").textContent = data.sisa.sando;
+    document.getElementById("sisaStuf").textContent = data.sisa.stuf;
+  }).getKirimSisaSummary();
+}
+
+function loadRanking() {
+  google.script.run.withSuccessHandler(function(ranking) {
+    const list = document.getElementById("ranking");
+    list.innerHTML = "";
+    ranking.forEach(item => {
+      const li = document.createElement("li");
+      li.textContent = `${item.lapak} - ${formatRupiah(item.total)}`;
+      list.appendChild(li);
+    });
+  }).getLapakRanking();
+}
+
+function formatRupiah(number) {
   return new Intl.NumberFormat("id-ID", {
     style: "currency",
     currency: "IDR"
-  }).format(num);
+  }).format(number);
 }
-
-window.addEventListener("DOMContentLoaded", initDashboard);
