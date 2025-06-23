@@ -95,3 +95,14 @@ function filterDashboard() {
         lapak
     });
 }
+
+function updateSummaryKirimSisa() {
+  google.script.run.withSuccessHandler(function(data) {
+    document.getElementById("kirimMochi").textContent = data.kirimMochi;
+    document.getElementById("kirimSando").textContent = data.kirimSando;
+    document.getElementById("kirimStuf").textContent = data.kirimStuf;
+    document.getElementById("sisaMochi").textContent = data.sisaMochi;
+    document.getElementById("sisaSando").textContent = data.sisaSando;
+    document.getElementById("sisaStuf").textContent = data.sisaStuf;
+  }).getSummaryKirimSisa();
+}
